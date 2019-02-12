@@ -61,6 +61,7 @@ class QRScanner : CDVPlugin, AVCaptureMetadataOutputObjectsDelegate {
     var scanning: Bool = false
     var paused: Bool = false
     var nextScanningCommand: CDVInvokedUrlCommand?
+    
 
     enum QRScannerError: Int32 {
         case unexpected_error = 0,
@@ -153,7 +154,16 @@ class QRScanner : CDVPlugin, AVCaptureMetadataOutputObjectsDelegate {
                 metaOutput = AVCaptureMetadataOutput()
                 captureSession!.addOutput(metaOutput)
                 metaOutput!.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-                metaOutput!.metadataObjectTypes = [AVMetadataObjectTypeQRCode]
+                metaOutput!.metadataObjectTypes = [AVMetadataObjectTypeUPCECode,
+                                                   AVMetadataObjectTypeCode39Code,
+                                                   AVMetadataObjectTypeCode39Mod43Code,
+                                                   AVMetadataObjectTypeEAN13Code,
+                                                   AVMetadataObjectTypeEAN8Code,
+                                                   AVMetadataObjectTypeCode93Code,
+                                                   AVMetadataObjectTypeCode128Code,
+                                                   AVMetadataObjectTypePDF417Code,
+                                                   AVMetadataObjectTypeQRCode,
+                                                   AVMetadataObjectTypeAztecCode]
                 captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
                 cameraView.addPreviewLayer(captureVideoPreviewLayer)
                 captureSession!.startRunning()
@@ -238,12 +248,28 @@ class QRScanner : CDVPlugin, AVCaptureMetadataOutputObjectsDelegate {
             return
         }
         let found = metadataObjects[0] as! AVMetadataMachineReadableCodeObject
-        if found.type == AVMetadataObjectTypeQRCode && found.stringValue != nil {
-            scanning = false
-            let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: found.stringValue)
-            commandDelegate!.send(pluginResult, callbackId: nextScanningCommand?.callbackId!)
-            nextScanningCommand = nil
+
+        var supportedBarcodeTypes = [AVMetadataObjectTypeUPCECode,
+                                     AVMetadataObjectTypeCode39Code,
+                                     AVMetadataObjectTypeCode39Mod43Code,
+                                     AVMetadataObjectTypeEAN13Code,
+                                     AVMetadataObjectTypeEAN8Code,
+                                     AVMetadataObjectTypeCode93Code,
+                                     AVMetadataObjectTypeCode128Code,
+                                     AVMetadataObjectTypePDF417Code,
+                                     AVMetadataObjectTypeQRCode,
+                                     AVMetadataObjectTypeAztecCode]
+        
+        for barType in supportedBarcodeTypes {
+            if found.type == barType && found.stringValue != nil {
+                scanning = false
+                let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: found.stringValue)
+                commandDelegate!.send(pluginResult, callbackId: nextScanningCommand?.callbackId!)
+                nextScanningCommand = nil
+                break
+            }
         }
+   
     }
 
     func pageDidLoad() {
